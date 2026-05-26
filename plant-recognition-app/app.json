@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "PlantPal",
+    "slug": "plantpal",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#2d6a4f"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.yourcompany.plantpal",
+      "infoPlist": {
+        "NSCameraUsageDescription": "PlantPal uses your camera to photograph plants for identification.",
+        "NSPhotoLibraryUsageDescription": "PlantPal accesses your photo library to select plant images for identification."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#2d6a4f"
+      },
+      "package": "com.yourcompany.plantpal",
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE", "READ_MEDIA_IMAGES"]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PlantPal accesses your photos to select plant images.",
+          "cameraPermission": "PlantPal uses your camera to photograph plants."
+        }
+      ]
+    ],
+    "scheme": "plantpal",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
