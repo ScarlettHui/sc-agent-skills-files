@@ -18,10 +18,12 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   async function handleEmailAuth() {
+    setErrorMsg('');
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password.');
+      setErrorMsg('Please enter email and password.');
       return;
     }
     setLoading(true);
@@ -32,7 +34,7 @@ export default function LoginScreen() {
         await signInEmail(email, password);
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message ?? 'Authentication failed.');
+      setErrorMsg(err.message ?? 'Authentication failed.');
     } finally {
       setLoading(false);
     }
@@ -67,6 +69,10 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             secureTextEntry
           />
+
+          {errorMsg ? (
+            <Text style={styles.errorText}>{errorMsg}</Text>
+          ) : null}
 
           <TouchableOpacity
             style={styles.primaryButton}
@@ -171,6 +177,12 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  errorText: {
+    color: '#e63946',
+    fontSize: 14,
+    marginBottom: 10,
+    textAlign: 'center',
   },
   toggleText: {
     textAlign: 'center',
