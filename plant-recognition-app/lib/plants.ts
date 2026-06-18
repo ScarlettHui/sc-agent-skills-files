@@ -11,6 +11,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { ref, getDownloadURL, deleteObject } from 'firebase/storage';
+import * as FileSystem from 'expo-file-system/legacy';
 import { auth, db, storage } from './firebase';
 import type { PlantEntry, PlantInfo } from './types';
 
@@ -22,7 +23,7 @@ export async function savePlant(
   location?: string,
 ): Promise<string> {
   const storagePath = `plants/${userId}/${Date.now()}.jpg`;
-  await uploadImageXHR(imageUri, storagePath);
+  await uploadImageNative(imageUri, storagePath);
 
   const storageRef = ref(storage, storagePath);
   const imageUrl = await getDownloadURL(storageRef);
@@ -39,30 +40,26 @@ export async function savePlant(
   return docRef.id;
 }
 
-// React Native's XHR sends file URIs natively without creating JS Blobs,
-// bypassing Hermes's lack of ArrayBuffer → Blob support.
-async function uploadImageXHR(uri: string, storagePath: string): Promise<void> {
+// Uses expo-file-system's native upload which avoids all JS Blob/ArrayBuffer issues
+async function uploadImageNative(uri: string, storagePath: string): Promise<void> {
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new Error('Not authenticated');
 
   const bucket = (storage.app.options as any).storageBucket;
   const url = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(storagePath)}`;
 
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', url);
-    xhr.setRequestHeader('Authorization', `Firebase ${token}`);
-    xhr.setRequestHeader('Content-Type', 'image/jpeg');
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve();
-      } else {
-        reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`));
-      }
-    };
-    xhr.onerror = () => reject(new Error('Network error during upload'));
-    xhr.send({ uri, type: 'image/jpeg', name: 'photo.jpg' } as any);
+  const result = await FileSystem.uploadAsync(url, uri, {
+    httpMethod: 'POST',
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'image/jpeg',
+    },
   });
+
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(`Upload failed (${result.status}): ${result.body}`);
+  }
 }
 
 export async function getUserPlants(userId: string): Promise<PlantEntry[]> {
