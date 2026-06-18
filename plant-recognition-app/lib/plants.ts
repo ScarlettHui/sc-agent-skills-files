@@ -87,7 +87,7 @@ export async function deletePlant(plantId: string, imageUrl: string): Promise<vo
 
 async function uriToBlob(uri: string): Promise<Blob> {
   const base64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.Base64,
+    encoding: 'base64' as const,
   });
   const byteChars = atob(base64);
   const byteNums = new Array(byteChars.length);

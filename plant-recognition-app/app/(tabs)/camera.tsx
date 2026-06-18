@@ -62,7 +62,7 @@ export default function CameraScreen() {
     setStep('recognizing');
     try {
       const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64' as const,
       });
       const info = await recognizePlant(base64, 'image/jpeg');
       if (!info.isPlant) {
