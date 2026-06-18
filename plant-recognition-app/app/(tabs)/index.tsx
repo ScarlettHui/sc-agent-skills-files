@@ -28,8 +28,8 @@ export default function GalleryScreen() {
     try {
       const data = await getUserPlants(user.uid);
       setPlants(data);
-    } catch (err) {
-      Alert.alert('Error', 'Failed to load plants.');
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Failed to load plants.');
     } finally {
       setLoading(false);
       setRefreshing(false);
