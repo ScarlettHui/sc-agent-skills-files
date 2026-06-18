@@ -22,12 +22,37 @@ export async function savePlant(
   notes?: string,
   location?: string,
 ): Promise<string> {
-  const storagePath = `plants/${userId}/${Date.now()}.jpg`;
-  await uploadImageNative(imageUri, storagePath);
+  console.log('[save] step 1: getting token');
+  const token = await auth.currentUser?.getIdToken();
+  console.log('[save] step 1 done, token exists:', !!token);
+  if (!token) throw new Error('Not authenticated');
 
+  const bucket = (storage.app.options as any).storageBucket;
+  const storagePath = `plants/${userId}/${Date.now()}.jpg`;
+  const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(storagePath)}`;
+  console.log('[save] step 2: uploading image, uri:', imageUri.substring(0, 60));
+  console.log('[save] FileSystemUploadType:', FileSystem.FileSystemUploadType);
+
+  const result = await FileSystem.uploadAsync(uploadUrl, imageUri, {
+    httpMethod: 'POST',
+    uploadType: FileSystem.FileSystemUploadType?.BINARY_CONTENT ?? 0,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'image/jpeg',
+    },
+  });
+  console.log('[save] step 2 done, status:', result.status, 'body:', result.body?.substring(0, 100));
+
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(`Upload failed (${result.status}): ${result.body}`);
+  }
+
+  console.log('[save] step 3: getting download URL');
   const storageRef = ref(storage, storagePath);
   const imageUrl = await getDownloadURL(storageRef);
+  console.log('[save] step 3 done');
 
+  console.log('[save] step 4: saving to Firestore');
   const docRef = await addDoc(collection(db, 'plants'), {
     userId,
     imageUrl,
@@ -36,30 +61,9 @@ export async function savePlant(
     location: location ?? '',
     createdAt: serverTimestamp(),
   });
+  console.log('[save] step 4 done, id:', docRef.id);
 
   return docRef.id;
-}
-
-// Uses expo-file-system's native upload which avoids all JS Blob/ArrayBuffer issues
-async function uploadImageNative(uri: string, storagePath: string): Promise<void> {
-  const token = await auth.currentUser?.getIdToken();
-  if (!token) throw new Error('Not authenticated');
-
-  const bucket = (storage.app.options as any).storageBucket;
-  const url = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?uploadType=media&name=${encodeURIComponent(storagePath)}`;
-
-  const result = await FileSystem.uploadAsync(url, uri, {
-    httpMethod: 'POST',
-    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'image/jpeg',
-    },
-  });
-
-  if (result.status < 200 || result.status >= 300) {
-    throw new Error(`Upload failed (${result.status}): ${result.body}`);
-  }
 }
 
 export async function getUserPlants(userId: string): Promise<PlantEntry[]> {
