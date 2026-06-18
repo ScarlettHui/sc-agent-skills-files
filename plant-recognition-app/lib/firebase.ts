@@ -24,10 +24,16 @@ export const auth =
         persistence: getReactNativePersistence(AsyncStorage),
       });
 
-// Force long polling — WebChannel (WebSocket) transport hangs in React Native
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-});
+import { initializeFirestore, getFirestore } from 'firebase/firestore';
+
+// Use try/catch in case Firestore was already initialized on hot reload
+let db: ReturnType<typeof getFirestore>;
+try {
+  db = initializeFirestore(app, { experimentalForceLongPolling: true });
+} catch {
+  db = getFirestore(app);
+}
+export { db };
 
 export const storage = getStorage(app);
 export const functions = getFunctions(app);

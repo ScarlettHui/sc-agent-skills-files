@@ -53,7 +53,7 @@ export async function savePlant(
   console.log('[save] step 3 done');
 
   console.log('[save] step 4: saving to Firestore');
-  const docRef = await addDoc(collection(db, 'plants'), {
+  const writePromise = addDoc(collection(db, 'plants'), {
     userId,
     imageUrl,
     plantInfo,
@@ -61,6 +61,10 @@ export async function savePlant(
     location: location ?? '',
     createdAt: serverTimestamp(),
   });
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('Firestore write timed out after 15s')), 15000),
+  );
+  const docRef = await Promise.race([writePromise, timeoutPromise]);
   console.log('[save] step 4 done, id:', docRef.id);
 
   return docRef.id;
