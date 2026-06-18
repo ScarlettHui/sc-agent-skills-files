@@ -7,7 +7,6 @@ import {
   doc,
   query,
   where,
-  orderBy,
   serverTimestamp,
 } from 'firebase/firestore';
 import { ref, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -74,21 +73,22 @@ export async function getUserPlants(userId: string): Promise<PlantEntry[]> {
   const q = query(
     collection(db, 'plants'),
     where('userId', '==', userId),
-    orderBy('createdAt', 'desc'),
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => {
-    const data = d.data();
-    return {
-      id: d.id,
-      userId: data.userId,
-      imageUrl: data.imageUrl,
-      createdAt: data.createdAt?.toMillis?.() ?? Date.now(),
-      notes: data.notes,
-      location: data.location,
-      plantInfo: data.plantInfo,
-    } as PlantEntry;
-  });
+  return snap.docs
+    .map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        userId: data.userId,
+        imageUrl: data.imageUrl,
+        createdAt: data.createdAt?.toMillis?.() ?? Date.now(),
+        notes: data.notes,
+        location: data.location,
+        plantInfo: data.plantInfo,
+      } as PlantEntry;
+    })
+    .sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export async function getPlant(plantId: string): Promise<PlantEntry | null> {
