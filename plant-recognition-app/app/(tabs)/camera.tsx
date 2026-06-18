@@ -13,6 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
@@ -44,18 +45,32 @@ export default function CameraScreen() {
     const result = useCamera
       ? await ImagePicker.launchCameraAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          quality: 0.8,
+          quality: 0.5,
           base64: false,
+          allowsEditing: false,
         })
       : await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          quality: 0.8,
+          quality: 0.5,
           base64: false,
         });
 
     if (result.canceled || !result.assets[0]) return;
-    setImageUri(result.assets[0].uri);
-    await runRecognition(result.assets[0].uri);
+    const asset = result.assets[0];
+
+    // Resize large images to stay under Firebase's 10MB request limit
+    let uri = asset.uri;
+    if ((asset.width ?? 0) > 1200 || (asset.height ?? 0) > 1200) {
+      const manipulated = await ImageManipulator.manipulateAsync(
+        uri,
+        [{ resize: { width: 1200 } }],
+        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+      );
+      uri = manipulated.uri;
+    }
+
+    setImageUri(uri);
+    await runRecognition(uri);
   }
 
   async function runRecognition(uri: string) {
@@ -76,7 +91,8 @@ export default function CameraScreen() {
       setPlantInfo(info);
       setStep('review');
     } catch (err: any) {
-      Alert.alert('Recognition failed', err.message ?? 'Please try again.');
+      const msg = err.message ?? err.code ?? 'Please try again.';
+      Alert.alert('Recognition failed', msg);
       setStep('pick');
     }
   }
