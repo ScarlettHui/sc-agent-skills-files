@@ -11,7 +11,6 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import * as FileSystem from 'expo-file-system/legacy';
 import { db, storage } from './firebase';
 import type { PlantEntry, PlantInfo } from './types';
 
@@ -86,13 +85,6 @@ export async function deletePlant(plantId: string, imageUrl: string): Promise<vo
 }
 
 async function uriToBlob(uri: string): Promise<Blob> {
-  const base64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: 'base64' as const,
-  });
-  const byteChars = atob(base64);
-  const byteNums = new Array(byteChars.length);
-  for (let i = 0; i < byteChars.length; i++) {
-    byteNums[i] = byteChars.charCodeAt(i);
-  }
-  return new Blob([new Uint8Array(byteNums)], { type: 'image/jpeg' });
+  const response = await fetch(uri);
+  return await response.blob();
 }
