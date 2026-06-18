@@ -10,7 +10,8 @@ import {
   orderBy,
   serverTimestamp,
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
+import * as FileSystem from 'expo-file-system/legacy';
 import { db, storage } from './firebase';
 import type { PlantEntry, PlantInfo } from './types';
 
@@ -21,9 +22,11 @@ export async function savePlant(
   notes?: string,
   location?: string,
 ): Promise<string> {
-  const imageBlob = await uriToBlob(imageUri);
+  const base64 = await FileSystem.readAsStringAsync(imageUri, {
+    encoding: 'base64' as const,
+  });
   const storageRef = ref(storage, `plants/${userId}/${Date.now()}.jpg`);
-  await uploadBytes(storageRef, imageBlob);
+  await uploadString(storageRef, base64, 'base64');
   const imageUrl = await getDownloadURL(storageRef);
 
   const docRef = await addDoc(collection(db, 'plants'), {
@@ -84,7 +87,3 @@ export async function deletePlant(plantId: string, imageUrl: string): Promise<vo
   }
 }
 
-async function uriToBlob(uri: string): Promise<Blob> {
-  const response = await fetch(uri);
-  return await response.blob();
-}
